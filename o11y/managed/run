@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+blue() {
+  echo -e "\033[38;5;4m$*\033[0m"
+}
+red() {
+  echo -e "\033[31m$*\033[0m"
+}
+err() {
+  echo -e "[[`red ERROR`]: $*" >&2
+}
+log() {
+  echo -e "[`blue INFO`]: $*" >&2 
+}
+
+if [[ ${DEBUG:-} == true ]]; then
+    set -x
+fi
+
+for r in jq docker; do
+    if ! command -v $r > /dev/null; then
+      err "$r is required but not installed"
+      exit 1
+    fi
+done
+
+if [[ -z ${AGENT_IMAGE:-} ]]; then
+    AGENT_IMAGE=docker.elastic.co/cloud/cluster-mgmt-agent:main
+    docker pull ${AGENT_IMAGE}
+else
+    log "Using override agent image: ${AGENT_IMAGE}"
+fi
+
+cd "$(dirname "$0")"/.. # Go to the root of the o11y folder
+
+ENVIRONMENT=${ENVIRONMENT:-dev}
+TTY=${TTY:-true}
+REPO_ROOT=${REPO_ROOT:-$(pwd)/..}
+DOCKER_EXTRA_ARGS=${DOCKER_EXTRA_ARGS:-}
+EXTRA_ARGS=${EXTRA_ARGS:-}
+set +e
+docker_version="$(docker version -f json | jq -r .Server.Platform.Name)" #best effort
+set -e
+
+if [[ $# -lt 1 ]]; then
+  err "Usage: $0 <action>"
+  exit 1
+fi
+
+action="$1"
+
+if [[ $action == "import" ]]; then
+    if [[ -z "${IMPORT_FILE:-}" && ( -z "${IMPORT_ADDRESS:-}" || -z "${IMPORT_ID:-}" ) ]]; then
+        err "Please provide IMPORT_ADDRESS & IMPORT_ID || IMPORT_FILE environment variables for import command. Exiting."
+        exit 1
+    fi
+    if [[ -n "${IMPORT_FILE:-}" ]]; then
+        DOCKER_EXTRA_ARGS="$DOCKER_EXTRA_ARGS -v $(dirname $IMPORT_FILE):$(dirname $IMPORT_FILE)" # Mount the directory containing the file
+    else 
+        EXTRA_ARGS="$EXTRA_ARGS --address $IMPORT_ADDRESS --id $IMPORT_ID"
+    fi
+fi
+
+if [[ $TTY == "true" ]]; then
+    DOCKER_EXTRA_ARGS="$DOCKER_EXTRA_ARGS -it"
+fi
+
+log "Running action '${action}' for environment '${ENVIRONMENT}' with extra args: '${EXTRA_ARGS}'"
+
+docker run --rm \
+-e GITHUB_TOKEN -e ENVIRONMENT -e DEBUG -e VAULT_ADDR -e VAULT_TOKEN -e ROLE_ARN \
+-e TF_LOG -e FORCE -e USE_LOCAL -e TAINT_RESOURCES -e IMPORT_FILE -e IMPORT_ID -e IMPORT_ADDRESS \
+-e AWS_PROFILE -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN \
+-e ES_HOST -e KB_HOST -e CLUSTER_USERNAME -e CLUSTER_PASSWORD -e DOCKER_VERSION="$docker_version" \
+-e TF_ELASTICSTACK_INCLUDE_EXPERIMENTAL=true -e TF_ELASTICSTACK_SKIP_LOCATION_VALIDATION=true -e ELASTICSTACK_PROVIDER_VERSION \
+-v ~/.aws/credentials:/root/.aws/credentials -v ~/.aws/config:/root/.aws/config -v "${REPO_ROOT}:/repo" -v "${HOME}/.cluster-mgmt/:/root/.cluster-mgmt" ${DOCKER_EXTRA_ARGS} \
+-w /repo/o11y --net=host \
+${AGENT_IMAGE} ${action} ${EXTRA_ARGS}
+
+
+#This file has been retrieved from https://github.com/elastic/cluster-mgmt-resources/tree/main/blessed via `make update`

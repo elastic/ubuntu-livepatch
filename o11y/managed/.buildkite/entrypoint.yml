@@ -1,0 +1,33 @@
+agents:
+  image: "docker.elastic.co/cloud/cluster-mgmt-agent:${AGENT_IMAGE_TAG:-main}"
+
+steps:
+  - label: ":mag: Detect o11y Changes"
+    if: build.env("O11Y_APPLY") != "true" && build.env("FORCE") != "true"
+    if_changed: "o11y/**"
+    env:
+      SLACK_NOTIFICATIONS_CHANNEL: ${SLACK_NOTIFICATIONS_CHANNEL}
+      AGENT_IMAGE_TAG: ${AGENT_IMAGE_TAG}
+      PIPELINE_BRANCH: ${PIPELINE_BRANCH}
+      CLUSTER_MGMT_SOURCE_REPO: ${CLUSTER_MGMT_SOURCE_REPO}
+    command: "buildkite-agent pipeline upload o11y/managed/.buildkite/planapply.yml"
+
+  - label: "cluster-mgmt apply"
+    if: build.env("O11Y_APPLY") == "true" || build.env("FORCE") == "true"
+    env:
+      SLACK_NOTIFICATIONS_CHANNEL=${SLACK_NOTIFICATIONS_CHANNEL}
+      AGENT_IMAGE_TAG=${AGENT_IMAGE_TAG}
+      PIPELINE_BRANCH=${PIPELINE_BRANCH}
+      FORCE=${FORCE:-false}
+      CLUSTER_MGMT_SOURCE_REPO=${CLUSTER_MGMT_SOURCE_REPO}
+      TF_ELASTICSTACK_SKIP_LOCATION_VALIDATION=${TF_ELASTICSTACK_SKIP_LOCATION_VALIDATION:-true}
+    command: "buildkite-agent pipeline upload o11y/managed/.buildkite/planapply.yml"
+
+  - trigger: cluster-mgmt-resources
+    label: ":unlock: $BUILDKITE_PIPELINE_SLUG unlock"
+    if: build.env("ACTION") == "unlock"
+    build:
+      branch: ${PIPELINE_BRANCH:-main}
+      env:
+        ACTION: unlock
+        CLUSTER_MGMT_SOURCE_REPO: ${CLUSTER_MGMT_SOURCE_REPO:-}

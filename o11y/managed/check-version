@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+VERSION_FILE=".version"
+GITHUB_TOKEN=${GITHUB_TOKEN:-""}
+
+set -euo pipefail
+
+yellow() {
+  echo -e "\033[33m$*\033[0m"
+}
+
+red() {
+  echo -e "\033[31m$*\033[0m"
+}
+
+if [[ -z ${GITHUB_TOKEN} ]]; then
+    yellow "GITHUB_TOKEN is not set, skipping makefile version check"
+    exit 0
+fi
+
+
+cd "$(dirname "$0")"/..
+
+current_version=$(cat $VERSION_FILE)
+if [[ -z "$current_version" ]]; then
+  red "No version found in file '$VERSION_FILE'"
+  exit 1
+fi
+
+remote_version=$(curl -s https://${GITHUB_TOKEN}@raw.githubusercontent.com/elastic/cluster-mgmt-resources/main/blessed/.version)
+if [[ $? -ne 0 ]] || [[ ! $remote_version =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+  red "Error: Failed to download remote version."
+  exit 1
+fi
+
+if [[ "$remote_version" -gt "$current_version" ]]; then
+    yellow "Your makefile is out of date! Please run 'make update' to get the latest version."
+    exit 0
+fi
+
+echo "Your makefile is up to date. ✅"
+
+#This file has been retrieved from https://github.com/elastic/cluster-mgmt-resources/tree/main/blessed via `make update`
