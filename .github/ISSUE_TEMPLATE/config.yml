@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Issues are not accepted in this repository
+    url: https://ela.st/hosted-infra-request
+    about: Please do not open issues here. Click to be redirected to the appropriate place.
