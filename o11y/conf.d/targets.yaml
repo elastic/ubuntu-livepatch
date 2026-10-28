@@ -1,0 +1,76 @@
+#targeting is based on the cluster metadata - you can target based on any of the variables in the cluster metadata
+#cluster metadata for qa eg https://github.com/elastic/cluster-mgmt-resources/blob/main/baseconfig/qa.conf.d/qa-clusters.yaml
+
+#versioning is based on any gitref - you can place any ref you like in the version or use `local` to deploy the local version.
+#note, the demo configuration sets `use_local: true` in flags.yaml which will ignore all versioning. This is the easiest way to get started.
+
+modules:
+  - name: demo-logging
+    targets:
+      - match:
+          purpose: logging #deploy to every logging cluster
+    inputs:
+      common_tags: module.common.common_tags
+      slack_channel_id: module.common.slack_channel_id
+      slack_connector_id: module.connectors.slack_connector_id
+      pd_connector_id: module.connectors.pd_connector_id
+    versions:
+      dev: local
+      # qa: my-branch
+      # staging: my-tag
+      # govcloud-staging: my-tag
+      # production: 51d462976d84fdea54b47d80dcabbf680badcdb8
+      # govcloud-moderate: 51d462976d84fdea54b47d80dcabbf680badcdb8
+      # govcloud-high: 51d462976d84fdea54b47d80dcabbf680badcdb8
+
+  - name: demo-overview
+    targets:
+      - match:
+          purpose: overview #deploy to overview cluster
+    versions:
+      dev: local
+      # qa: my-branch
+      # staging: my-tag
+      # govcloud-staging: my-tag
+      # production: 51d462976d84fdea54b47d80dcabbf680badcdb8
+      # govcloud-moderate: 51d462976d84fdea54b47d80dcabbf680badcdb8
+      # govcloud-high: 51d462976d84fdea54b47d80dcabbf680badcdb8
+
+  - name: demo-logging-serverless
+    targets:
+      - match:
+          purpose: logging
+          serverless: "true" #deploy to all serverless logging clusters
+    versions:
+      dev: local
+      # qa: my-branch
+      # staging: my-tag
+      # govcloud-staging: my-tag
+      # production: 51d462976d84fdea54b47d80dcabbf680badcdb8
+      # govcloud-moderate: 51d462976d84fdea54b47d80dcabbf680badcdb8
+      # govcloud-high: 51d462976d84fdea54b47d80dcabbf680badcdb8
+
+  - name: common
+    targets:
+      - match_all: true #config-only values (tags/channel) can safely be provided to all clusters
+    versions:
+      dev: local
+      # qa: my-branch
+      # staging: my-tag
+      # govcloud-staging: my-tag
+      # production: 51d462976d84fdea54b47d80dcabbf680badcdb8
+      # govcloud-moderate: 51d462976d84fdea54b47d80dcabbf680badcdb8
+      # govcloud-high: 51d462976d84fdea54b47d80dcabbf680badcdb8
+
+  - name: connectors
+    targets:
+      - match:
+          owner: platform-observability #most connectors are on platform-o11y clusters, this may need to be adjusted for connectors deployed to alternate clusters
+    versions:
+      dev: local
+      # qa: my-branch
+      # staging: my-tag
+      # govcloud-staging: my-tag
+      # production: 51d462976d84fdea54b47d80dcabbf680badcdb8
+      # govcloud-moderate: 51d462976d84fdea54b47d80dcabbf680badcdb8
+      # govcloud-high: 51d462976d84fdea54b47d80dcabbf680badcdb8

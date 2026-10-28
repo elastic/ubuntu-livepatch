@@ -1,0 +1,32 @@
+agents:
+  image: "docker.elastic.co/cloud/cluster-mgmt-agent:${AGENT_IMAGE_TAG:-main}"
+
+steps:
+  - trigger: cluster-mgmt-resources
+    if: build.env("BUILDKITE_PULL_REQUEST") != "false"
+    label: ":memo: $BUILDKITE_PIPELINE_SLUG plan"
+    build:
+      branch: ${PIPELINE_BRANCH:-main}
+      env:
+        REMOTE_BRANCH: $BUILDKITE_BRANCH
+        REMOTE_PR_ID: $BUILDKITE_PULL_REQUEST
+        SLACK_NOTIFICATIONS_CHANNEL: $SLACK_NOTIFICATIONS_CHANNEL
+        ACTION: plan
+        CLUSTER_MGMT_SOURCE_REPO: ${CLUSTER_MGMT_SOURCE_REPO:-}
+        AGENT_IMAGE_TAG: ${AGENT_IMAGE_TAG:-}
+        TF_ELASTICSTACK_SKIP_LOCATION_VALIDATION: ${TF_ELASTICSTACK_SKIP_LOCATION_VALIDATION:-true}
+
+  - trigger: cluster-mgmt-resources
+    label: ":rocket: $BUILDKITE_PIPELINE_SLUG deploy"
+    branches: ["main", "master"]
+    build:
+      branch: ${PIPELINE_BRANCH:-main}
+      env:
+        REMOTE_BRANCH: $BUILDKITE_BRANCH
+        REMOTE_PR_ID: $BUILDKITE_PULL_REQUEST
+        SLACK_NOTIFICATIONS_CHANNEL: $SLACK_NOTIFICATIONS_CHANNEL
+        ACTION: apply
+        CLUSTER_MGMT_SOURCE_REPO: ${CLUSTER_MGMT_SOURCE_REPO:-}
+        AGENT_IMAGE_TAG: ${AGENT_IMAGE_TAG:-}
+        FORCE: ${FORCE:-false}
+        TF_ELASTICSTACK_SKIP_LOCATION_VALIDATION: ${TF_ELASTICSTACK_SKIP_LOCATION_VALIDATION:-true}

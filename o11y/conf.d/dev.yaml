@@ -1,0 +1,17 @@
+clusters:
+  dev:
+  - name: dev
+    credentials:
+      username: elastic
+      password: changeme
+    elasticsearch:
+      endpoint: http://localhost:9200 #feel free to change these endpoints and creds to suit your particular testing environments
+    kibana:
+      endpoint: http://localhost:5601
+    match_all: true #will match all modules without having to target them explicitly, this is just a special dev thing so you don't have to create dev config for every unique cluster type you deploy to.
+    metadata: #metadata is freeform, the metadata here is uses for targeting and for module variables, to see how this is defined in real envs, check out the baseconfig https://github.com/elastic/cluster-mgmt-resources/blob/main/baseconfig/qa.conf.d/qa-clusters.yaml
+      region: local
+      short_region: local
+      csp: local
+      purpose: all #in other envs, this is something like "logging" or "overview", it labels what the cluster is used for, or its "purpose"
+      deployment_id: 12345abc
